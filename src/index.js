@@ -8,13 +8,9 @@ app.use(express.json());
 
 const existsCpf = (req, res, next) => {
   const { cpf } = req.params;
-  const formattedCPF = cpf.replace(
-    /(\d{3})(\d{3})(\d{3})(\d{2})/,
-    "$1.$2.$3-$4"
-  );
-  const user = USERS.find((item) => item.cpf === formattedCPF);
-  if (user === undefined) {
-    return res.status(404).json({ message: "CPF not registered!" });
+  const CPF_FOUND = USERS.find((user) => user.cpf === cpf);
+  if (!CPF_FOUND) {
+    return res.status(404).json({ error: "invalid cpf - user is not registered" });
   }
   next();
 };
@@ -35,19 +31,19 @@ app.post("/users", (req, res) => {
 app.patch("/users/:cpf", existsCpf, (req, res) => {
   const { cpf } = req.params;
   const data = req.body;
-  const formattedCPF = cpf.replace( /(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-  const user = USERS.find((item) => item.cpf === formattedCPF);
-  user.cpf = data.cpf;
-  user.name = data.name;
-  res.json({ message: "User is updated", user });
+  const user = USERS.find((item) => item.cpf === cpf);
+  const userIndex = USERS.findIndex((user) => user.cpf === cpf);
+  const updatedUser = { ...user, ...req.body };
+  USERS[userIndex] = updatedUser;
+
+  res.status(200).json({ message: "User is updated", users: [USERS[userIndex]] });
+
 
 });
 
-
 app.delete("/users/:cpf", existsCpf, (req, res) => {
   const { cpf } = req.params;
-  const formattedCPF = cpf.replace( /(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-  const user = USERS.find((item) => item.cpf === formattedCPF);
+  const user = USERS.find((item) => item.cpf === cpf);
   const index = USERS.indexOf(user);
   USERS.splice(index, 1);
   res.status(200).json({
@@ -60,19 +56,17 @@ app.delete("/users/:cpf", existsCpf, (req, res) => {
 
 app.get("/users/:cpf/notes", existsCpf, (req, res) => {
   const { cpf } = req.params;
-  const formattedCPF = cpf.replace( /(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-  const user = USERS.find((item) => item.cpf === formattedCPF);
+  const user = USERS.find((item) => item.cpf === cpf);
   res.json(user.notes);
 });
 
 
 app.post("/users/:cpf/notes", existsCpf, (req, res) => {
   const { cpf } = req.params;
-  const formattedCPF = cpf.replace( /(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-  const data = req.body;
+  const data = req.body;  
   data.id = uuidv4();
   data.created_at = new Date();
-  const user = USERS.find((item) => item.cpf === formattedCPF);
+  const user = USERS.find((item) => item.cpf === cpf);
   user.notes.push(data);
   res.status(201).json({
     message: `${data.title} was added into ${user.name}'s notes`,
@@ -82,22 +76,22 @@ app.post("/users/:cpf/notes", existsCpf, (req, res) => {
 
 app.patch("/users/:cpf/notes/:id", existsCpf, (req, res) => {
   const { cpf, id } = req.params;
-  const formattedCPF = cpf.replace( /(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  const updatedAt = new Date(); 
   const data = req.body;
-  const user = USERS.find((item) => item.cpf === formattedCPF);
-  const note = user.notes.find((item) => item.id === id);
-  note.title = data.title;
-  note.content = data.content;
-  note.updated_at = new Date();
-  res.json(note);
+  const user = USERS.find((user) => user.cpf === cpf);
+  const note = user.notes.find((note) => note.id === id);
+  const updatedNote = {...note, ...data, updatedAt: new Date()};
+  user.notes[note] = updatedNote;
 
+  res.status(200).json(user.notes[note]);
 });
+
+
 
 
 app.delete("/users/:cpf/notes/:id", existsCpf,  (req, res) => {
   const { cpf, id } = req.params;
-  const formattedCPF = cpf.replace( /(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-  const user = USERS.find((item) => item.cpf === formattedCPF);
+  const user = USERS.find((item) => item.cpf === cpf);
   const note = user.notes.find((item) => item.id === id);
   const index = user.notes.indexOf(note);
   user.notes.splice(index, 1);
