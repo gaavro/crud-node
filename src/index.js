@@ -76,15 +76,18 @@ app.post("/users/:cpf/notes", existsCpf, (req, res) => {
 
 app.patch("/users/:cpf/notes/:id", existsCpf, (req, res) => {
   const { cpf, id } = req.params;
-  const updatedAt = new Date(); 
-  const data = req.body;
   const user = USERS.find((user) => user.cpf === cpf);
   const note = user.notes.find((note) => note.id === id);
-  const updatedNote = {...note, ...data, updatedAt: new Date()};
-  user.notes[note] = updatedNote;
+  const noteIndex = user.notes.findIndex((note) => note.id === id)
+  const userIndex = USERS.findIndex((user) => user.cpf === cpf);
 
-  res.status(200).json(user.notes[note]);
-});
+  const updatedNote = {...note, ...req.body, updated_at: new Date()};
+
+  USERS[userIndex].notes[noteIndex] = updatedNote;
+
+  res.status(200).json(USERS[userIndex].notes[noteIndex]);
+}
+);
 
 
 
